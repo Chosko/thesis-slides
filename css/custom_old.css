@@ -1,0 +1,58 @@
+@import url(../lib/font/lato/lato.css);
+
+html,
+body,
+ul,
+li{
+  font-family: 'latoregular' !important;
+}
+.reveal .cover h3{
+  margin-bottom: 8%;
+}
+
+.reveal h4{
+  font-size: 0.8em;
+  text-transform: none;
+  font-family: 'latolight';
+}
+.reveal section img{
+  border: 0px;
+  background: none;
+  box-shadow: none;
+}
+
+.div-left{
+  width: 75%;
+  display: inline-block;
+  float: left;
+  text-align: left;
+}
+.div-right{
+  width: 25%;
+  display: inline-block;
+  text-align: left;
+}
+
+.img-left{
+  display: inline-block;
+  float: left;
+  width: 48%;
+  border-right: 2% solid transparent;
+}
+
+.img-right{
+  display: inline-block;
+  float: right;
+  width: 48%;
+}
+
+.font-italic{
+  font-size: 0.7em !important;
+  font-family: 'latolight' !important;
+}
+.logounito{
+  width: 13%;
+}
+section.text-top{
+  top: 50px !important;
+}

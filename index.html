@@ -1,0 +1,551 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>reveal.js</title>
+
+		<link rel="stylesheet" href="css/reveal.css">
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section class="cover">
+          <h4>Università degli Studi di Torino</h4>
+          <img data-src="img/logounito.png"  class="logounito"/>
+          <h3>Studio e realizzazione di effetti speciali per il rendering stereoscopico in tempo reale</h3>
+          <div class="div-left font-italic">
+            Relatore:<br />
+            Prof. Maurizio Lucenteforte
+          </div>
+          <div class="div-right font-italic">
+            Candidato:<br />
+            Ruben Caliandro
+          </div>
+          <aside class="notes">
+            La mia tesi riguarda lo studio e la realizzazione di alcuni effetti speciali per la realtà virtuale.
+          </aside>
+        </section>
+        <section>
+          <h3>Argomenti trattati</h3>
+          <ul>
+            <li>Real-time rendering</li>
+            <li class="fragment">Post-processing (2D)</li>
+            <li class="fragment">Realtà Virtuale (3D)</li>
+            <li class="fragment">Un possibile approccio risolutivo</li>
+          </ul>
+          <aside class="notes">
+            Nella produzione in real-time di immagini 3D si utilizzano spesso effetti speciali.
+            Alcuni di questi sono tecniche di post-processing che operano nel sistema di coordinate 2D dello schermo, il cosiddetto screen space.
+            La realtà virtuale introduce la stereoscopia, ovvero la visione binoculare della scena, che viene percepita dal cervello come un'immagine 3D con tanto di profondità.
+            Il post-processing funziona bene nel rendering classico ma non sempre in realtà virtuale, poichè modifica l'immagine 2D senza tenere conto della profondità, che può risultare distorta al punto che il cervello non riesce più a riconoscerla correttamente.
+            In questa tesi presento un caso specifico di implementazione di una di queste tecniche e spiego le soluzioni adottate, nella speranza che possano essere un primo passo verso una soluzione più generale al problema presentato.
+          </aside>
+        </section>
+        <section>
+          <section>
+            <h3>Indice</h3>
+            <ul>
+              <li class="emph">Blind</li>
+              <li>Specifiche del progetto</li>
+              <li>Esperimenti preliminari</li>
+              <li>Implementazione finale</li>
+              <li>Sviluppi futuri</li>
+            </ul>
+            <aside class="notes">
+              Il lavoro è stato svolto per il videogioco "Blind". Nel corso della presentazione spiegherò le specifiche del progetto, poi un paio di esperimenti preliminari che ho dovuto abbandonare a causa dei problemi riscontrati, ma che mi hanno portato allo sviluppo di un'implementazione finale soddisfacente. Infine parlerò dei possibili sviluppi futuri.
+            </aside>
+          </section>
+          <section
+            data-background-color="#ffffff"
+            data-background-image="img/blind_ragazza_logo.jpg"
+            data-background-position="center"
+            data-background-size="auto 100%"
+            data-background-transition="slide"
+          >
+            <aside class="notes">
+              Blind è un videogioco attualmente sviluppo presso l'azienda Tiny Bull studios e uscirà all'inizio del prossimo anno per PC e PlayStation.
+            </aside>
+          </section>
+          <section
+            data-background-color="#ffffff"
+            data-background-image="img/htc1.jpg"
+            data-background-position="left bottom"
+            data-background-size="55%"
+            class="text-top"
+          >
+            <div>
+              <h3>Blind</h3>
+              <ul>
+                <li>Room-scale VR</li>
+                <li>Steam VR - Oculus - PSVR - OSVR</li>
+              </ul>
+            </div>
+            <aside class="notes">
+              Si tratta di un videogame in realtà virtuale room-scale, ovvero il giocatore indossa un visore ed è libero di muoversi in un'area ristretta. Un sistema di sensori traccia il movimento della testa e delle mani, permettendo all'utente di sentirsi coinvolto nella scena virtuale in prima persona.
+            </aside>
+          </section>
+          <section
+          data-background-color="#222222"
+          data-background-video="video/blind.mp4"
+          data-background-video-loop
+          data-background-video-muted
+          >
+            <aside class="notes">
+              Nel gioco la protagonista è una ragazza cieca che riesce a percepire ciò che la circonda grazie all'ecolocalizzazione.
+              Come si vede nel video l'ambiente è oscuro ma ogni oggetto che produce un suono illumina l'area circostante.<br><br>
+              All'inizio del gioco, la protagonista subisce un incidente d'auto e si risveglia cieca in un ambiente a lei sconosciuto. Nonostante la cecità, è in grado di percepire ciò che la circonda grazie all'ecolocalizzazione.
+              Ciò che si vede nel gioco è quindi un ambiente totalmente oscuro, dove ogni oggetto che produce un suono rivela al giocatore l'area circostante. Per esplorare la casa misteriosa in cui si trova, la protagonista utilizza un bastone per non vedenti, sbattendolo in giro per produrre un suono che illumina l'ambiente.
+            </aside>
+          </section>
+        </section>
+        <section>
+          <section>
+            <h3>Indice</h3>
+            <ul>
+              <li>Blind</li>
+              <li class="emph">Specifiche del progetto</li>
+              <li>Esperimenti preliminari</li>
+              <li>Implementazione finale</li>
+              <li>Sviluppi futuri</li>
+            </ul>
+            <aside class="notes">
+              Il progetto che ho svolto durante lo stage ha tre tipi di specifiche.
+            </aside>
+          </section>
+          <section
+            data-background-color="#101010"
+            data-background-image="img/scott.jpg"
+            data-background-position="center"
+            data-background-size="auto 90%"
+            class="text-top">
+            <h3>Specifiche esplicite</h3>
+            <!-- <ul>
+              <li>Ricordi della protagonista</li>
+              <li>Comparsa e scomparsa improvvisa</li>
+              <li>Incorporeità</li>
+              <li>Movimento continuo</li>
+              <li>Concept art</li>
+            </ul> -->
+            <aside class="notes">
+              Quelle esplicite sono le specifiche fornite da Tiny Bull Studios. Mi è stato chiesto di implementare i ricordi della protagonista, che sono oggetti o persone che le compaiono davanti sotto forma di fantasmi e hanno lo scopo di svelare alcuni dettagli della sua vita passata.
+              Questi ricordi sono incorporei, semitrasparenti, compaiono dal nulla e scompaiono improvvisamente nel nulla.
+              Inoltre, una richiesta era il fatto che sui contorni assomigliassero ad un fluido in movimento, come se fossero sotto l'effetto costante di un vento.
+              Trattandosi di un concetto puramente astratto ed artistico mi sono state fornite alcune immagini di riferimento, come il concept che si può vedere sullo sfondo.
+            </aside>
+          </section>
+          <!-- <section>
+            <h3>Specifiche implicite</h3>
+            <ul>
+              <li>Ottimizzazione</li>
+              <li>Stereoscopia</li>
+            </ul>
+            <aside class="notes">
+            </aside>
+          </section> -->
+          <section>
+            <h3>Ottimizzazione</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Display</th>
+                  <th>Risoluzione</th>
+                  <th>Pixel/sec</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>HD Ready</td>
+                  <td>1280x720 @ 30Hz</td>
+                  <td>27 milioni</td>
+                </tr>
+                <tr>
+                  <td>Full HD</td>
+                  <td>1920x1080 @ 60Hz</td>
+                  <td>124 milioni</td>
+                </tr>
+                <tr>
+                  <td>4k</td>
+                  <td>4096x2160 @ 30Hz</td>
+                  <td>265 milioni</td>
+                </tr>
+                <tr>
+                  <td>VR</td>
+                  <td>1512x1680x2 @ 90Hz</td>
+                  <td>457 milioni</td>
+                </tr>
+              </tbody>
+            </table>
+            <aside class="notes">
+              Esistono anche delle delle specifiche implicite che derivano direttamente dalla realtà virtuale, una di queste è l'ottimizzazione computazionale.
+              Infatti un'applicazione che supporti la realtà virtuale richiede molte più risorse computazionali rispetto ad un'applicazione tradizionale. Questa differenza si può misurare con il numero di pixel che devono essere calcolati ogni secondo. Come si vede nella tabella un dispositivo di realtà virtuale richiede circa 4 volte la potenza di calcolo rispetto ad un classico display Full HD a 60Hz. La differenza è anche che nella realtà virtuale non sono ammessi cali di framerate, pena la possibilità di incorrere in motion sickness.
+            </aside>
+          </section>
+          <section
+            data-background-color="#ffffff"
+            data-background-image="img/wheatstone.jpg"
+            data-backgrond-position="center"
+            data-background-size="60%"
+            data-background-transition="slide"
+            class="text-top"
+          >
+            <h3>Stereoscopia</h3>
+            <!-- <ul>
+              <li class="fragment">Visione binoculare</li>
+              <li class="fragment">Profondità percepita = parallasse</li>
+              <li class="fragment">Post-processing distorce parallasse</li>
+            </ul> -->
+            <aside class="notes">
+              Un'altra specifica implicità è la compatibilità con la stereoscopia.
+              Infatti il cervello interpreta le immagini con la visione binoculare, dove la profondità è infierita grazie alla parallasse degli oggetti nelle due immagini elaborate dal cervello.
+              Alcuni effetti speciali possono distorcere questa parallasse, soprattutto quelli di post-processing.
+            </aside>
+          </section>
+          <section>
+            <h3>Specifiche aggiuntive</h3>
+            <ul>
+              <li>Sorgenti sonore</li>
+              <li>Collisioni</li>
+              <li>Interazioni con il giocatore</li>
+            </ul>
+            <aside class="notes">
+              L'ultima tipologia di specifiche riguarda alcune feature che sono state aggiunte in seguito perchè l'implementazione finale lo permetteva.
+              I ricordi possono essere disturbati, cioè si deformano fino a dissolversi parzialmente in presenza di un suono forte, di un oggetto che li trapassa o dello stesso giocatore che può interagire con le mani o passandoci attraverso.
+            </aside>
+          </section>
+        </section>
+        <section>
+          <section>
+            <h3>Indice</h3>
+            <ul>
+              <li>Blind</li>
+              <li>Specifiche del progetto</li>
+              <li class="emph">Esperimenti preliminari</li>
+              <li>Implementazione finale</li>
+              <li>Sviluppi futuri</li>
+            </ul>
+            <aside class="notes">
+              Passiamo ora agli esperimenti implementativi preliminari
+            </aside>
+          </section>
+          <section
+            data-background-image="img/modelFace.jpg"
+            data-background-position="right bottom"
+            data-background-size="auto 65%"
+            class="text-top"
+          >
+            <h3>Materiale di base</h3>
+            <ul>
+              <li class="fragment" data-fragment-index="1">\( \mathrm{diffuse} = max(0, (v \cdot n)^\alpha k_s) \)</li>
+              <li class="fragment" data-fragment-index="2">\( \mathrm{rim} = max(0, (1 − (v \cdot n))^\beta k_r) \)</li>
+              <li class="fragment" data-fragment-index="3">Ottimizzazione: <span class="green">OK</span></li>
+              <li class="fragment" data-fragment-index="3">Stereoscopia: <span class="green">OK</span></li>
+            </ul>
+            <aside class="notes">
+              Il primo esperimento è stata l'implementazione di uno shader per il materiale di base per il ricordo.
+              L'illuminazione è stata calcolata volutamente in modo innaturale, con un'unica point light frontale, posizionata sulla camera.
+              La componente di diffuse è quella del modello di Phong: v è il view vector, n è la normale alla superficie e k_s è un coefficiente del materiale. La differenza con Phong è l'esponente alpha che permette di dare un aspetto più simile ad una luce speculare.
+              Il rim lighting, cioè l'illuminazione dei contorni, è calcolata con una formula simile, ma invece del prodotto scalare è stato utilizzato 1 - il prodotto scalare.
+              Infine, è stata introdotta una trasparenza parziale utilizzando l'alpha blending.
+              Questo materiale rispecchia alcune delle specifiche richieste, e non presenta problemi di ottimizzazione o di stereoscopia, quindi è stato utilizzato anche nell'implementazione finale.
+            </aside>
+          </section>
+          <section
+            data-background-image="img/ray_cast.jpg"
+            data-background-color="#ffffff"
+            data-background-transition="fade"
+            data-background-position="bottom center"
+            data-background-size="auto 80vh"
+            class="text-top"
+            >
+            <h3>Rendering volumetrico</h3>
+            <ul class="fragment">
+              <li>Ottimizzazione: <span class="red">NO</span></li>
+              <li>Stereoscopia: <span class="green">OK</span></li>
+            </ul>
+            <aside class="notes">
+              Successivamente bisognava implementare i contorni del modello, che dovevano apparire fluidi e in continuo movimento.
+              Un primo tentativo è stato effettuato con un approccio volumetrico.
+              L'idea di base è quella di suddividere il volume della mesh in voxel, dare un valore di densità ad ogni voxel e utilizzare un algoritmo di ray-casting per proiettare in camera il volume.
+              Un algoritmo di simulazione dei fluidi si occupa di assegnare le densità ai voxel, di aggiornarli nel tempo e di farli reagire alle sollecitazioni esterne.
+              Di tutto ciò è stato implementato solo l'algoritmo di ray-casting, testandolo su un volume i cui voxel erano riempiti con valori pseudo-casuali.
+              Infatti l'approccio è stato abbandonato subito poichè si è rivelato troppo pesante per la realtà virtuale.
+              Il solo algoritmo di ray-casting non era in grado di mantenere i 90fps insieme al resto del gioco, nonostante la compatibilità con la stereoscopia fosse garantita dalla natura volumetrica del rendering.
+            </aside>
+          </section>
+          <section>
+            <h3>Post-processing</h3>
+            <ul>
+              <li>Fotogramma processato da shader</li>
+              <li>Distortion mapping</li>
+              <li>Scorrimento in screen space</li>
+              <li class="fragment" data-fragment-index="1">Ottimizzazione: <span class="green">OK</span></li>
+              <li class="fragment" data-fragment-index="1">Stereoscopia: <span class="red">NO</span></li>
+            </ul>
+            <aside class="notes">
+              Come secondo tentativo è stata utilizzata una tecnica di post-processing molto più leggera a livello computazionale.
+              Uno shader modifica il fotogramma corrente, applicando una distorsione sui contorni del modello del ricordo.
+              L'entità della distorsione è decisa da una texture speciale chiamata distortion map, che è stata scelta apposta per ottenere un effetto simile a quello di un fluido che si sposta. Questa distortion map viene fatta scorrere sulle coordinate dello schermo, per ottenere un movimento continuo in una direzione.
+              L'effetto funziona bene ma purtroppo non è compatibile con la stereoscopia per i motivi che abbiamo visto prima riguardo al post-processing. Tuttavia questa volta ho deciso di non abbandonare questo approccio ma di affrontare i problemi relativi alla stereoscopia.
+            </aside>
+          </section>
+          <section>
+            <img src="img/postProcessingResult_left.jpg" class="img-left">
+            <img src="img/postProcessingResult_right.jpg" class="img-right">
+            <aside class="notes">
+              Purtroppo non posso farvi vedere il problema su uno schermo normale come questo, ma ho volutamente esagerato la distorsione per farvi intuire di che cosa si tratta.
+              L'effetto applicato è lo stesso per l'occhio sinistro e per l'occhio destro, con la stessa distortion map nella stessa posizione dello schermo. Ciò che cambia è la parallasse del modello tra occhio sinistro e destro. Questo fa sì che la distorsione modifichi in modo incoerente il modello, come si può vedere sulla testa.
+            </aside>
+          </section>
+        </section>
+        <section>
+          <section>
+            <h3>Indice</h3>
+            <ul>
+              <li>Blind</li>
+              <li>Specifiche del progetto</li>
+              <li>Esperimenti preliminari</li>
+              <li class="emph">Implementazione finale</li>
+              <li>Sviluppi futuri</li>
+            </ul>
+            <aside class="notes">
+              Passiamo ora all'implementazione finale.
+            </aside>
+          </section>
+          <section>
+            <h3>Idea di base</h3>
+            <ul>
+              <li class="fragment">Effetto anticipato nella scena 3D</li>
+              <li class="fragment">Piccole superfici 2D (Quad)</li>
+              <li class="fragment">Distortion mapping sui quad</li>
+              <li class="fragment">Non è post-processing, ma lo shader è lo stesso!</li>
+            </ul>
+            <aside class="notes">
+              L'idea di base è quella di anticipare il calcolo dell'effetto, scartando quindi la sua natura di post-processing e andandolo a calcolare nella scena 3D.
+              Vengono inseriti in scena un insieme superfici 2D sufficientemente piccole, dei quad, posizionate sui dettagli del modello.
+              L'effetto di distortion mapping viene quindi applicato sui quad, utilizzandoli come se fossero dei piccoli viewport.
+              La vicinanza tra i quad e i dettagli del modello permette di ridurre notevolmente la distorsione della parallasse.
+              Non è più post processing, ma lo shader utilizzato per i quad è lo stesso.
+            </aside>
+          </section>
+          <section
+          data-background-image="img/hierarchyEditor.jpg"
+          data-background-position="bottom center"
+          data-background-size="auto 70vh"
+          class="text-top">
+            <h3>I quad</h3>
+          </section>
+          <section>
+            <h3>Uno script di gestione dei quad</h3>
+            <ul>
+              <li>Orienta i quad verso la camera</li>
+              <li>Calcola la sorgente di disturbo</li>
+              <li>Ruota i quad sull'asse z</li>
+              <li>Fa scorrere le distortion map</li>
+            </ul>
+            <aside class="notes">
+              Nello specifico, uno script di gestione dei quad li orienta continuamente verso la camera, in modo che siano allineati allo schermo.
+              Poi calcola un'unica sorgente di disturbo, che tiene conto dei suoni circostanti e delle collisioni.
+              Poi ruota ulteriormente i quad in modo che la loro tangente sia nella direzione opposta a quella da in cui si trova la sorgente.
+              Infine incrementa una variabile che modifica le coordinate UV per far scorrere le distortion map sui quad.
+            </aside>
+          </section>
+          <section>
+            <img src="img/ghostParticlesManager1.jpg" class="img-left">
+            <img src="img/ghostParticlesManager2.jpg" class="img-right">
+            <aside class="notes">
+              In queste immagini si vedono due esempi dei quad orientati dallo script. La sfera bianca indica la posizione della sorgente di disturbo, mentre le frecce rosse sui quad indicano la direzione in cui scorrono le distortion map.
+            </aside>
+          </section>
+          <section>
+            <h3>Lo shader</h3>
+            <ul>
+              <li>Calcola intensità di disturbo</li>
+              <li>Applica distortion mapping</li>
+              <!-- <li>Applica alpha blending</li> -->
+            </ul>
+            <aside class="notes">
+              A questo puntoi i quad sono renderizzati con lo stesso shader che era stato utilizzato per il post processing.
+              Lo shader calcola l'intensità del disturbo per ogni pixel, applica il distortion mapping ed effettua l'alpha blending per miscelare l'output dei vari quad sovrapposti.
+            </aside>
+          </section>
+          <!-- <section>
+            <h3>Input dello Shader</h3>
+            <div class="fragment">
+              Texture "background"
+              <img src="img/background.jpg">
+            </div>
+            <div class="fragment">
+              Texture "background_and_model"
+              <img src="img/background_and_model.jpg">
+            </div>
+            <div>
+              Distortion map
+              <img src="img/distortionMap1.jgp">
+              <img src="img/distortionMap2.png">
+            </div>
+          </section> -->
+          <section
+            data-background-color="#ffffff">
+            <h3>Intensità della distorsione</h3>
+            <img src="img/pseudoMetricSmall.jpg" class="distortion-img1"><br />
+            <img src="img/intensityField.jpg" class="distortion-img2">
+            <aside class="notes">
+              Questa immagine mostra l'intensità della distorsione calcolata dallo shader per ogni pixel dei quad, mostrata in pseudocolori. Vicino alla sorgente l'intensità è 1 e decresce quadraticamente man mano che i pixel sono più lontani.
+            </aside>
+          </section>
+          <!-- <section>
+            <h3>Distorsione su "backround_and_model"</h3>
+            <img src="img/background_and_model.jpg">
+            <img src="img/distorted.jpg">
+          </section> -->
+          <!-- <section>
+            <h3>Aree di interesse</h3>
+            <div class="fragment">
+              Area dello sfondo
+              <img src="img/background_area.jpg">
+            </div>
+            <div class="fragment">
+              Area del modello
+              <img src="img/model_area.jpg">
+            </div>
+            <div class="fragment">
+              Area del modello sullo sfondo
+              <img src="img/background_over_model.jpg">
+            </div>
+            <div class="fragment">
+              Area dello sfondo sul modello
+              <img src="img/model_over_background.jpg">
+            </div>
+          </section> -->
+          <!-- <section>
+            <h3>Contributo di "background"</h3>
+            <div class="fragment">
+              Fattore di blending
+              <img src="img/background_.jpg">
+            </div>
+            <div class="fragment">
+              Area del modello
+              <img src="img/model_area.jpg">
+            </div>
+            <div class="fragment">
+              Area del modello sullo sfondo
+              <img src="img/background_over_model.jpg">
+            </div>
+            <div class="fragment">
+              Area dello sfondo sul modello
+              <img src="img/model_over_background.jpg">
+            </div>
+          </section> -->
+          <!-- <section>
+            <h3>Distortion mapping</h3>
+            <img src="img/total_contribution.jpg">
+            <aside class="notes">
+              Questa immagine mostra il distortion mapping applicato al modello esattamente come veniva effettuato nel post-processing, ma in questo caso la distortion map è stata applicata a delle superfici vicine ai dettagli del modello, pertanto la distorsione della parallasse è trascurabile.
+              Tuttavia si intravede la geometria dei quad, poichè ci sono dei tagli netti.
+            </aside>
+          </section>
+          <section
+            data-background-color="#ffffff">
+            <h3>Alpha blending</h3>
+            <img src="img/pseudoMetricSmall.jpg">
+            <img src="img/border_fade.jpg">
+            <aside class="notes">
+              Per questo motivo viene modificato il canale alpha dei quad, facendolo diminuire fino a 0 in modo radiale.
+              Nell'immagine sinistra si vede l'alpha in pseudocolori, nell'immagine a destra si vede applicato come trasparenza ai quad bianchi.
+            </aside>
+          </section> -->
+          <section>
+            <h3>Distortion Mapping</h3>
+            <ul class="fragment">
+              <li>Ottimizzazione: <span class="green">OK</span></li>
+              <li>Stereoscopia: <span class="green">OK</span></li>
+            </ul>
+            <img src="img/particles_result.jpg" class="particles-img">
+            <aside class="notes">
+              Il risultato è quello mostrato in figura. La geometria dei quad non è più percepibile. Inoltre l'effetto funziona bene sia per l'ottimizzazione che per la stereoscopia.
+            </aside>
+          </section>
+          <section
+            data-background-color="#222222"
+            data-background-video="video/blind2.mp4"
+            data-background-video-loop
+            data-background-video-muted
+          >
+            <aside class="notes">
+              Il video è una dimostrazione del risultato ottenuto.
+            </aside>
+          </section>
+        </section>
+        <section>
+          <section>
+            <h3>Indice</h3>
+            <ul>
+              <li>Blind</li>
+              <li>Specifiche del progetto</li>
+              <li>Esperimenti preliminari</li>
+              <li>Implementazione finale</li>
+              <li class="emph">Sviluppi futuri</li>
+            </ul>
+            <aside class="notes">
+              Infine, due parole sugli sviluppi futuri.
+            </aside>
+          </section>
+          <section>
+            <h3>Sviluppi futuri</h3>
+            <ul>
+              <li class="fragment">Automatizzare il posizionamento dei quad</li>
+              <li class="fragment">Generalizzare l'implementazione</li>
+              <li class="fragment">Formalizzare il problema e la soluzione</li>
+            </ul>
+            <aside class="notes">
+              La prima cosa da fare sarebbe automatizzare il posizionamento dei quad, che in blind è stato fatto a mano e richiede molto tempo.
+              Poi bisognerebbe dell'implementazione. Infatti alcune caratteristiche del progetto sono specifiche di questo videogioco. Sarebbe utile sviluppare solo lo scheletro di questo approccio per poter applicare ai quad l'effetto di post-processing desiderato.
+              Infine bisognerebbe formalizzare il problema affrontato e la soluzione adottata. Infatti non tutti gli effetti di post-processing funzionerebbero. Bisognerebbe individuare in modo preciso e formale quali tipi di effetti sono compatibilii con questo approccio, e fornire una soluzione sistematica.
+            </aside>
+          </section>
+        </section>
+        <section>
+          <h3>Grazie!</h3>
+          Domande?
+        </section>
+      </div>
+    </div>
+
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.js"></script>
+
+    <script>
+      // More info about config & dependencies:
+      // - https://github.com/hakimel/reveal.js#configuration
+      // - https://github.com/hakimel/reveal.js#dependencies
+      transition: 'concave', // none/fade/slide/convex/concave/zoom
+      Reveal.initialize({
+        backgroundTransition: 'slide', // none/fade/slide/convex/concave/zoom
+        dependencies: [
+          { src: 'plugin/markdown/marked.js' },
+          { src: 'plugin/markdown/markdown.js' },
+          { src: 'plugin/notes/notes.js', async: true },
+          { src: 'plugin/highlight/highlight.js', async: true,  callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'plugin/math/math.js', async: true }
+        ],
+        math: {
+          mathjax: 'lib/js/MathJax-master/MathJax.js',
+          config: 'TeX-AMS_HTML-full'  // See http://docs.mathjax.org/en/latest/config-files.html
+        }
+      });
+    </script>
+  </body>
+</html>
